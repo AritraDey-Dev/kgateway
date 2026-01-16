@@ -2,6 +2,7 @@ package trafficpolicy
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -29,6 +30,7 @@ import (
 
 	apiannotations "github.com/kgateway-dev/kgateway/v2/api/annotations"
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/kgateway"
+	translatormetrics "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/metrics"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections"
@@ -265,6 +267,7 @@ func NewPlugin(ctx context.Context, commoncol *collections.CommonCollections, me
 
 	// TrafficPolicy IR will have TypedConfig -> implement backendroute method to add prompt guard, etc.
 	statusCol, policyCol := krt.NewStatusCollection(col, func(krtctx krt.HandlerContext, policyCR *kgateway.TrafficPolicy) (*krtcollections.StatusMarker, *ir.PolicyWrapper) {
+		finishMetrics := translatormetrics.CollectPolicyTranslationMetrics("TrafficPolicy")
 		objSrc := ir.ObjectSource{
 			Group:     gk.Group,
 			Kind:      gk.Kind,
@@ -289,6 +292,8 @@ func NewPlugin(ctx context.Context, commoncol *collections.CommonCollections, me
 				break
 			}
 		}
+
+		finishMetrics(errors.Join(errors...))
 
 		pol := &ir.PolicyWrapper{
 			ObjectSource:     objSrc,

@@ -26,6 +26,7 @@ import (
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/kgateway"
+	translatormetrics "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/metrics"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/utils"
 	kgwwellknown "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections"
@@ -202,6 +203,7 @@ func NewPlugin(ctx context.Context, commoncol *collections.CommonCollections) sd
 	gk := kgwwellknown.ListenerPolicyGVK.GroupKind()
 
 	policyStatusMarker, policyCol := krt.NewStatusCollection(col, func(krtctx krt.HandlerContext, i *kgateway.ListenerPolicy) (*krtcollections.StatusMarker, *ir.PolicyWrapper) {
+		finishMetrics := translatormetrics.CollectPolicyTranslationMetrics("ListenerPolicy")
 		objSrc := ir.ObjectSource{
 			Group:     gk.Group,
 			Kind:      gk.Kind,
@@ -219,6 +221,7 @@ func NewPlugin(ctx context.Context, commoncol *collections.CommonCollections) sd
 		}
 
 		polIr, errs := NewListenerPolicyIR(krtctx, commoncol, i.CreationTimestamp.Time, &i.Spec, objSrc)
+		finishMetrics(errors.Join(errs...))
 		pol := &ir.PolicyWrapper{
 			ObjectSource: objSrc,
 			Policy:       i,
